@@ -555,29 +555,16 @@
      ((or (:wrap opts) wrap-fn) form)
      opts)))
 
-(defn canonicalize-specs [specs]
-  (letfn [(canonicalize [quoted-spec-or-kw]
-            (if (keyword? quoted-spec-or-kw)
-              quoted-spec-or-kw
-              (as-> (second quoted-spec-or-kw) spec
-                (if (vector? spec) spec [spec]))))]
-    (map canonicalize specs)))
-
-(defn decorate-specs [specs]
-  (if-let [k (some #{:reload :reload-all} specs)]
-    (->> specs (remove #{k}) (map #(vary-meta % assoc :reload k)))
-    specs))
-
 (comment
-  (canonicalize-specs
+  (ana/canonicalize-specs
     '['foo.bar '[bar.core :as bar]])
 
-  (canonicalize-specs
+  (ana/canonicalize-specs
     '['foo.bar '[bar.core :as bar] :reload])
 
   (map meta
-    (decorate-specs
-      (canonicalize-specs
+    (ana/decorate-specs
+      (ana/canonicalize-specs
         '['foo.bar '[bar.core :as bar] :reload])))
   )
 
@@ -642,7 +629,7 @@
           (evaluate-form repl-env env "<cljs repl>"
             (with-meta
               `(~'ns ~target-ns
-                 (:require ~@(-> specs canonicalize-specs decorate-specs)))
+                 (:require ~@(-> specs ana/canonicalize-specs ana/decorate-specs)))
               {:merge true :line 1 :column 1})
             identity opts)
           (when is-self-require?
@@ -655,7 +642,7 @@
         (evaluate-form repl-env env "<cljs repl>"
           (with-meta
             `(~'ns ~ana/*cljs-ns*
-               (:require-macros ~@(-> specs canonicalize-specs decorate-specs)))
+               (:require-macros ~@(-> specs ana/canonicalize-specs ana/decorate-specs)))
             {:merge true :line 1 :column 1})
           identity opts)))
      'import

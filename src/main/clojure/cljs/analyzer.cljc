@@ -753,7 +753,7 @@
 (declare analyze analyze-symbol analyze-seq)
 
 (def specials '#{if def fn* do let* loop* letfn* throw try recur new set!
-                 ns deftype* defrecord* . js* & quote case* var})
+                 ns deftype* defrecord* . js* & quote case* var require})
 
 (def ^:dynamic *recur-frames* nil)
 (def ^:dynamic *loop-lets* ())
@@ -1825,7 +1825,7 @@
 
 (defmethod parse 'ns
   [_ env [_ name & args :as form] _ opts]
-  (when-not (symbol? name) 
+  (when-not (symbol? name)
     (throw (error env "Namespaces must be named by a symbol.")))
   (let [name (cond-> name (:macros-ns opts) macro-ns-name)]
     (let [segments (string/split (clojure.core/name name) #"\.")]
@@ -1921,6 +1921,29 @@
             (@reload :require)
             (update-in [:requires]
               (fn [m] (with-meta m {(@reload :require) true})))))))))
+
+(defn canonicalize-specs [specs]
+  (letfn [(canonicalize [quoted-spec-or-kw]
+                        (if (keyword? quoted-spec-or-kw)
+                          quoted-spec-or-kw
+                          (as-> (second quoted-spec-or-kw) spec
+                                (if (vector? spec) spec [spec]))))]
+    (map canonicalize specs)))
+
+(defn decorate-specs [specs]
+  (if-let [k (some #{:reload :reload-all} specs)]
+    (->> specs (remove #{k}) (map #(vary-meta % assoc :reload k)))
+    specs))
+
+(defmethod parse 'require
+  [_ env [_ & specs :as form] _ opts]
+  (let [target-ns (get-in env [:ns :name] 'cljs.user)]
+    (assoc
+      (parse 'ns env
+             `(~'ns ~target-ns
+                (:require ~@(-> specs canonicalize-specs decorate-specs)))
+             nil opts)
+      :op :require)))
 
 (defn parse-type
   [op env [_ tsym fields pmasks body :as form]]

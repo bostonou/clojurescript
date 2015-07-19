@@ -963,6 +963,11 @@
   (load-libs requires nil (:require reloads))
   (load-libs uses requires (:use reloads)))
 
+(defmethod emit* :require
+  [{:keys [name requires uses require-macros reloads env]}]
+  (load-libs requires nil (:require reloads))
+  (load-libs uses requires (:use reloads)))
+
 (defmethod emit* :deftype*
   [{:keys [t fields pmasks body]}]
   (let [fields (map munge fields)]
