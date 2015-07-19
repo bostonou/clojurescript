@@ -963,6 +963,10 @@
   (load-libs requires nil (:require reloads))
   (load-libs uses requires (:use reloads)))
 
+(defmethod emit* :require
+  [{:keys [name]}]
+  (emitln "goog.require('" (munge name) "');"))
+
 (defmethod emit* :deftype*
   [{:keys [t fields pmasks body]}]
   (let [fields (map munge fields)]
