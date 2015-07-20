@@ -2672,16 +2672,16 @@
                                            (-> reader line-seq count))}))
                              @env/*compiler*])
                           (recur (rest forms))))
-                      (let [ns-name 'cljs.user]
-                        [(merge
-                           {:ns ns-name
-                            :provides [ns-name]
-                            :file dest
-                            :source-file src}
-                           (when (and dest (.exists ^File dest))
-                             {:lines (with-open [reader (io/reader dest)]
-                                       (-> reader line-seq count))}))
-                         @env/*compiler*])))))]
+                      [(merge
+                         {:ns 'cljs.user
+                          :provides []
+                          :requires #{}
+                          :file dest
+                          :source-file src}
+                         (when (and dest (.exists ^File dest))
+                           {:lines (with-open [reader (io/reader dest)]
+                                     (-> reader line-seq count))}))
+                       @env/*compiler*]))))]
           (when (false? (:restore opts))
             (swap! env/*compiler* update-in [::namespaces] merge
               (get compiler-env' ::namespaces)))
